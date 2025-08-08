@@ -1,0 +1,164 @@
+package com.telegram.vitbot.service;
+
+
+import com.telegram.vitbot.config.BotConfig;
+import com.telegram.vitbot.user.User;
+import lombok.extern.java.Log;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@Component
+public class TelegramBot extends TelegramLongPollingBot {
+
+    final BotConfig config;
+
+    public UserService userService = new UserService();
+
+    public TelegramBot(BotConfig config){ this.config = config;}
+
+    @Override
+    public void onUpdateReceived(Update update) {
+
+        if(update.hasMessage() && update.getMessage().hasText()){
+            String messageText = update.getMessage().getText();
+            long chatId = update.getMessage().getChatId();
+            switch (messageText){
+                case "/start":
+                    try {
+                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                        break;
+                    } catch (TelegramApiException e) {
+                        System.out.println("ERROR -> TelegramApi");
+                    }
+                case "\uD83D\uDCC5":
+                    try {
+                        TaskFunction(userService,chatId);
+                        break;
+                    } catch (TelegramApiException e){
+                        System.out.println("ERROR -> TelegramApi");
+                    }
+                default: sendMessage(chatId,"Команда не распознана");
+            }
+        }
+
+    }
+
+    private void startCommandReceived(long chatId, String firstName) throws TelegramApiException{
+
+        String answer;
+        if (userService.userMap.get(chatId) == null) {
+            answer = "\uD83D\uDE80 VIT13 — твой жесткий и умный ассистент для управления жизнью и успехом.\n" +
+                    "Он помогает:\n" +
+                    "\uD83D\uDCC5 Планировать день — расставлять приоритеты и не забывать важное.\n" +
+                    "\uD83D\uDCAA Следить за здоровьем — вода, сон, тренировки и отдых под контролем.\n" +
+                    "\uD83D\uDCB0 Управлять финансами — контроль бюджета, расходы и напоминания по счетам.\n" +
+                    "\uD83D\uDCDD Запоминать важное — заметки, идеи, пароли и дела с быстрым доступом.\n" +
+                    "\uD83E\uDD16 Анализировать привычки — умные советы и рекомендации на базе ИИ.\n" +
+                    "\uD83C\uDFC6 Мотивировать и поддерживать — челленджи, награды и ежедневные напоминания.\n" +
+                    "\uD83D\uDCDA Помогать развиваться — подборка курсов, книг и отслеживание прогресса.\n" +
+                    "\uD83E\uDD1D Объединять с другими — группы, обмен опытом и поддержка сообщества.\n" +
+                    "\uD83E\uDDE0 Персональный коучинг ИИ — адаптация под твой стиль и помощь в дисциплине.";
+            User user = new User();
+            user.setChatId(chatId);
+            user.setFirstName(firstName);
+
+            userService.addUser(chatId,user,userService.userMap);
+        }
+        else{
+            answer = "Снова здравствуй, "+ firstName +"! Чем могу быть полезен?";
+        }
+
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText(answer);
+
+        List<String> buttonNames1 = Arrays.asList("\uD83D\uDCC5","\uD83D\uDCAA","\uD83D\uDCB0","\uD83D\uDCDD");
+        KeyboardRow row1 = new KeyboardRow();
+        row1.addAll(buttonNames1);
+        List<String> buttonNames2 = Arrays.asList("\uD83E\uDD16","\uD83C\uDFC6","\uD83D\uDCDA","\uD83E\uDD1D","\uD83E\uDDE0");
+        KeyboardRow row2 = new KeyboardRow();
+        row2.addAll(buttonNames2);
+        List<KeyboardRow> keyboardRows = List.of(row1,row2);
+
+        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup(keyboardRows);
+        markup.setResizeKeyboard(true);
+        message.setReplyMarkup(markup);
+
+        try {
+            execute(message);
+            System.out.println("Message done to " + firstName);
+            System.out.println("Main menu create");
+        } catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+
+    }
+
+    private void TaskFunction(UserService userService,long chatId) throws TelegramApiException{
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("Добро пожаловать в планировщик дня! Выбери нужную кнопку:");
+
+        var buttonAddTask = InlineKeyboardButton.builder()
+                .text("Добавить задачу")
+                .callbackData("add task")
+                .build();
+        var buttonGetTask = InlineKeyboardButton.builder()
+                .text("Найти задачу")
+                .callbackData("get task")
+                .build();
+
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        row.add(buttonAddTask);
+        row.add(buttonGetTask);
+        List<List<InlineKeyboardButton>> keyboardRows = new ArrayList<>();
+        keyboardRows.add(row);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(keyboardRows);
+        message.setReplyMarkup(markup);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+
+    }
+
+    private void sendMessage(long chatId, String textToSend){
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText(textToSend);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+    }
+
+    @Override
+    public String getBotUsername() {
+        return config.getBotName();
+    }
+
+    @Override
+    public String getBotToken(){;
+        return config.getToken();
+    }
+
+    @Override
+    public void onRegister() {
+        super.onRegister();
+    }
+}
