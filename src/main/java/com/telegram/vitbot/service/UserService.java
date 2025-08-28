@@ -4,7 +4,6 @@ import com.telegram.vitbot.user.User;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class UserService {
 
@@ -14,15 +13,15 @@ public class UserService {
 
     public Map<Long ,User> userMap = new HashMap<>();
 
-    public void addUser(Long chatId, User user, Map<Long, User> userMap){
+    public void addUser(Long chatId, User user){
         userMap.put(chatId,user);
     }
 
-    public void deleteUser(Long chatId, Map<Long, User> userMap){
+    public void deleteUser(Long chatId){
         userMap.remove(chatId);
     }
 
-    public User getUser(Long chatId, Map<Long, User> userMap) {
+    public User getUser(Long chatId) {
         return userMap.get(chatId);
     }
 }

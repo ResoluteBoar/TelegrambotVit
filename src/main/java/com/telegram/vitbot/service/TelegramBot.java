@@ -1,12 +1,15 @@
 package com.telegram.vitbot.service;
 
 
+import com.telegram.vitbot.chatgpt.ChatGPTClient;
+import com.telegram.vitbot.chatgpt.OpenAIClient;
 import com.telegram.vitbot.config.BotConfig;
+import com.telegram.vitbot.fuction.task.Task;
 import com.telegram.vitbot.user.User;
-import lombok.extern.java.Log;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -14,9 +17,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+
+import static com.telegram.vitbot.secret.SecretKeys.CHAT_GPT_KEY;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -24,6 +27,8 @@ public class TelegramBot extends TelegramLongPollingBot {
     final BotConfig config;
 
     public UserService userService = new UserService();
+    
+    ChatGPTClient gptClient = new ChatGPTClient(CHAT_GPT_KEY);
 
     public TelegramBot(BotConfig config){ this.config = config;}
 
@@ -32,7 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         if(update.hasMessage() && update.getMessage().hasText()){
             String messageText = update.getMessage().getText();
-            long chatId = update.getMessage().getChatId();
+            Long chatId = update.getMessage().getChatId();
             switch (messageText){
                 case "/start":
                     try {
@@ -43,13 +48,37 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                 case "\uD83D\uDCC5":
                     try {
-                        TaskFunction(userService,chatId);
+                        TaskFunctionMenu(chatId);
                         break;
                     } catch (TelegramApiException e){
                         System.out.println("ERROR -> TelegramApi");
                     }
-                default: sendMessage(chatId,"Команда не распознана");
+                default:
+                    try {
+                        String response = gptClient.ask(update.getMessage().getText());
+                        System.out.println("ChatGPT: " + response);
+                        SendMessage message = new SendMessage();
+                        message.setChatId(chatId);
+                        message.setText(response);
+                        try {
+                            execute(message);
+                        } catch (TelegramApiException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
             }
+        }
+        else if (update.hasCallbackQuery()){
+            long chatId = update.getMessage().getChatId();
+            try {
+                handleCallbackQuery(update.getCallbackQuery(), userService.getUser(chatId), update);
+                System.out.println("Start logic");
+            } catch (TelegramApiException e) {
+                System.out.println("ERROR -> TelegramApi");
+            }
+
         }
 
     }
@@ -73,7 +102,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setChatId(chatId);
             user.setFirstName(firstName);
 
-            userService.addUser(chatId,user,userService.userMap);
+            userService.addUser(chatId,user);
         }
         else{
             answer = "Снова здравствуй, "+ firstName +"! Чем могу быть полезен?";
@@ -105,7 +134,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private void TaskFunction(UserService userService,long chatId) throws TelegramApiException{
+    private void TaskFunctionMenu(long chatId) throws TelegramApiException{
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText("Добро пожаловать в планировщик дня! Выбери нужную кнопку:");
@@ -132,6 +161,64 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e){
             System.out.println("ERROR -> TelegramApi");
         }
+
+    }
+
+    private void handleCallbackQuery(CallbackQuery callbackQuery, User user, Update update) throws TelegramApiException {
+        var data = callbackQuery.getData();
+        long chatId = callbackQuery.getFrom().getId();
+        switch (data){
+            case "add task" -> addTask(user, update);
+            case "get task" -> getTask();
+            default -> sendMessage(chatId, "Неизвестная команда");
+        }
+    }
+
+    private void addTask(User user, Update update) throws TelegramApiException{
+
+        Task task = new Task();
+
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(user.getChatId()));
+        message.setText("Напишите имя задачи");
+        try {
+            execute(message);
+        }
+        catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+
+        task.setTaskName(update.getMessage().getText());
+        message.setText("Напишите описание задачи");
+
+        try {
+            execute(message);
+        }
+        catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+
+        task.setTaskDescription(update.getMessage().getText());
+        message.setText("Напишите дату задачи в формате 01.01.2025");
+
+        try {
+            execute(message);
+        }
+        catch (TelegramApiException e){
+            System.out.println("ERROR -> TelegramApi");
+        }
+
+
+        String[] date = update.getMessage().getText().split("\\.");
+
+        Calendar calendar = new GregorianCalendar(Integer.parseInt(date[2]),Integer.parseInt(date[1]),Integer.parseInt(date[0]));
+        user.getUserCalendar().addDay(calendar);
+        user.getUserCalendar().getDay(calendar).getTaskService().addTask(task);
+    }
+
+    private void getTask(){
+
+
 
     }
 

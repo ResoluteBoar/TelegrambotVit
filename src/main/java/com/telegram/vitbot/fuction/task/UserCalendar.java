@@ -1,20 +1,21 @@
 package com.telegram.vitbot.fuction.task;
 
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 
 public class UserCalendar {
 
     public Day day;
 
-    public Map<Calendar,Day> dayMap;
+    public Map<Calendar,Day> dayMap = new HashMap<>();
 
-    public void addDay(Map<Calendar,Day> dayMap, Day day){
-        dayMap.put(day.getDateOfDay(),day);
+    public void addDay(Calendar calendar){
+        dayMap.put(calendar,day);
     }
 
-    public Day getDay(Map<Calendar,Day> dayMap, Day day) {
-        return dayMap.get(day.getDateOfDay());
+    public Day getDay(Calendar date) {
+        return dayMap.get(date);
     }
 
     public void deleteDay(Map<Calendar,Day> dayMap, Day day){
