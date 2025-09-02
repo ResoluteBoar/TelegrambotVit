@@ -5,13 +5,13 @@ import com.telegram.vitbot.fuction.task.UserCalendar;
 
 public class User {
 
-    public long chatId;
+    private long chatId;
 
-    public int age;
+    private int age;
 
-    public String firstName;
+    private String firstName;
 
-    public UserCalendar userCalendar;
+    private UserCalendar userCalendar;
 
     public UserCalendar getUserCalendar() {
         return userCalendar;

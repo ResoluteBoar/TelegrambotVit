@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class UserCalendar {
 
-    public Day day;
+    private Day day;
 
     public Map<Calendar,Day> dayMap = new HashMap<>();
 

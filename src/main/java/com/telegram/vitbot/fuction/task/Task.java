@@ -3,11 +3,12 @@ package com.telegram.vitbot.fuction.task;
 
 public class Task {
 
-    public String taskName;
+    private String taskName;
 
-    public String taskDescription;
 
-    public boolean isRegular;
+    private String taskDescription;
+
+    private boolean isRegular;
 
 
     public String getTaskName() {

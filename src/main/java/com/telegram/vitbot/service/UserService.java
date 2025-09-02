@@ -5,11 +5,12 @@ import com.telegram.vitbot.user.User;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UserService {
+public class UserService implements UserServInterface{
 
-    public User user;
+    private User user;
 
-    public Long chatId;
+    private Long chatId;
+
 
     public Map<Long ,User> userMap = new HashMap<>();
 

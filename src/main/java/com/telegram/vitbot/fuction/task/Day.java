@@ -1,22 +1,22 @@
 package com.telegram.vitbot.fuction.task;
 
-import com.telegram.vitbot.service.TaskService;
+import com.telegram.vitbot.service.TaskServiceImpl;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 public class Day {
 
-    public TaskService taskService;
+    private TaskServiceImpl taskServiceImpl;
 
-    public Calendar dateOfDay;
+    private Calendar dateOfDay;
 
-    public TaskService getTaskService() {
-        return taskService;
+    public TaskServiceImpl getTaskService() {
+        return taskServiceImpl;
     }
 
-    public void setTaskService(TaskService taskService) {
-        this.taskService = taskService;
+    public void setTaskService(TaskServiceImpl taskServiceImpl) {
+        this.taskServiceImpl = taskServiceImpl;
     }
 
     public Calendar getDateOfDay() {

@@ -2,7 +2,6 @@ package com.telegram.vitbot.service;
 
 
 import com.telegram.vitbot.chatgpt.ChatGPTClient;
-import com.telegram.vitbot.chatgpt.OpenAIClient;
 import com.telegram.vitbot.config.BotConfig;
 import com.telegram.vitbot.fuction.task.Task;
 import com.telegram.vitbot.user.User;
@@ -48,7 +47,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                 case "\uD83D\uDCC5":
                     try {
-                        TaskFunctionMenu(chatId);
+                            TaskFunctionMenu(chatId);
                         break;
                     } catch (TelegramApiException e){
                         System.out.println("ERROR -> TelegramApi");
@@ -134,6 +133,16 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
+    private void handleCallbackQuery(CallbackQuery callbackQuery, User user, Update update) throws TelegramApiException {
+        var data = callbackQuery.getData();
+        long chatId = callbackQuery.getFrom().getId();
+        switch (data){
+            case "add task" -> addTask(user, update);
+            case "get task" -> getTask();
+            default -> sendMessage(chatId, "Неизвестная команда");
+        }
+    }
+
     private void TaskFunctionMenu(long chatId) throws TelegramApiException{
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
@@ -162,16 +171,6 @@ public class TelegramBot extends TelegramLongPollingBot {
             System.out.println("ERROR -> TelegramApi");
         }
 
-    }
-
-    private void handleCallbackQuery(CallbackQuery callbackQuery, User user, Update update) throws TelegramApiException {
-        var data = callbackQuery.getData();
-        long chatId = callbackQuery.getFrom().getId();
-        switch (data){
-            case "add task" -> addTask(user, update);
-            case "get task" -> getTask();
-            default -> sendMessage(chatId, "Неизвестная команда");
-        }
     }
 
     private void addTask(User user, Update update) throws TelegramApiException{
